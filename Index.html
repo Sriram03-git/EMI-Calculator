@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loan Calculator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e7490'/%3E%3Cpath d='M9 22l5-6 4 3 6-8' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+:root{--bg:#f2f5f7;--card:#fff;--text:#10222b;--muted:#5b6b75;--bd:#dbe3e8;--acc:#0e7490;--accfg:#fff;--inp:#f6f9fa;--g:#15803d;--gbg:#dcfce7;--r:#b91c1c;--rbg:#fee2e2;--a:#b45309;--abg:#fef3c7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a1419;--card:#101d25;--text:#e6edf1;--muted:#91a4af;--bd:#223540;--acc:#22d3ee;--accfg:#04222a;--inp:#0b161c;--g:#4ade80;--gbg:#06301a;--r:#f87171;--rbg:#3f0d0d;--a:#fbbf24;--abg:#3b2506}}
+:root[data-theme="dark"]{--bg:#0a1419;--card:#101d25;--text:#e6edf1;--muted:#91a4af;--bd:#223540;--acc:#22d3ee;--accfg:#04222a;--inp:#0b161c;--g:#4ade80;--gbg:#06301a;--r:#f87171;--rbg:#3f0d0d;--a:#fbbf24;--abg:#3b2506}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--text);font-family:Figtree,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--card);z-index:30}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:1rem;padding:1rem}
+.lbl{font-size:.78rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.3rem}
+.inp{width:100%;background:var(--inp);color:var(--text);border:1px solid var(--bd);border-radius:.6rem;padding:.6rem .7rem;font:inherit;font-size:16px}
+.inp:focus,.btn:focus-visible,.btn2:focus-visible,.nv:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.btn,.btn2{border-radius:.7rem;padding:.7rem 1.6rem;font:inherit;font-weight:700;min-height:46px;cursor:pointer}
+.btn{background:var(--acc);color:var(--accfg);border:1px solid var(--acc)}
+.btn2{background:transparent;color:var(--text);border:1px solid var(--bd)}
+.btn2:hover{border-color:var(--acc)}
+/* navigation: top scroll bar on phones, sidebar on desktop */
+.side{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--bd);align-self:start}
+.top{display:none;align-items:center;justify-content:space-between;gap:.5rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.05rem;white-space:nowrap}
+.sbt{display:grid;place-items:center;flex:none;width:2.25rem;height:2.25rem;border:1px solid var(--bd);border-radius:.6rem;background:var(--inp);color:var(--muted);cursor:pointer}
+.sbt:hover{color:var(--text);border-color:var(--acc)}
+.sbt:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.sbt svg{transition:transform .2s}
+.nf{display:none}
+#nav{display:flex;gap:.35rem;overflow-x:auto;padding:.5rem .75rem}
+.nv{flex:none;display:flex;align-items:center;gap:.6rem;padding:.5rem .8rem;border-radius:.7rem;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;font-size:.9rem;cursor:pointer;text-align:left;min-height:44px;white-space:nowrap}
+.nv small{display:none;font-weight:500;font-size:.72rem;opacity:.85}
+.nv:hover{background:var(--inp);color:var(--text)}
+.nv[aria-current="page"]{background:var(--acc);color:var(--accfg)}
+.sep{flex:none;width:1px;background:var(--bd);margin:.4rem .2rem}
+.sep span{display:none}
+/* sidebar from 960px up (covers desktops, laptops and the ~980px "Desktop site" mode on phones) */
+@media(min-width:960px){
+.side{top:0;height:100vh;overflow:hidden auto;border-bottom:0;border-right:1px solid var(--bd);padding:1.4rem .9rem}
+.top{display:flex}
+#nav{flex-direction:column;overflow:visible;padding:0;margin-top:1.4rem}
+.nv{width:100%;white-space:normal}.nv small{display:block}
+.nf{display:inline}.ns{display:none}
+.sep{width:auto;height:auto;background:none;margin:.9rem .5rem .25rem;font-size:.72rem;font-weight:700;color:var(--muted)}.sep span{display:block}
+.shell{display:grid;grid-template-columns:16rem minmax(0,1fr);transition:grid-template-columns .2s ease}
+.shell.collapsed{grid-template-columns:4.75rem minmax(0,1fr)}
+.collapsed .side{padding:1.4rem .55rem}
+.collapsed .top{flex-direction:column;gap:.9rem}
+.collapsed .sbt svg{transform:rotate(180deg)}
+.collapsed .bt,.collapsed .nv>span,.collapsed .sep span{display:none}
+.collapsed .nv{justify-content:center;padding:.65rem}
+.collapsed .sep{height:1px;background:var(--bd);margin:.7rem .4rem .3rem}
+}
+#views,.res{scroll-margin-top:4.5rem}
+.kpi .val{font-size:1.35rem;font-weight:700;margin-top:.35rem}
+.kpi .sub{font-size:.78rem;color:var(--muted);margin-top:.15rem}
+.bar{display:flex;height:.8rem;border-radius:999px;overflow:hidden;background:var(--a);margin:.8rem 0 .5rem}.bar i{background:var(--acc)}
+.adv{border-radius:1rem;padding:1rem;border:1px solid}
+.adv.g{background:var(--gbg);border-color:var(--g)}.adv.g .t{color:var(--g)}
+.adv.r{background:var(--rbg);border-color:var(--r)}.adv.r .t{color:var(--r)}
+.adv.a{background:var(--abg);border-color:var(--a)}.adv.a .t{color:var(--a)}
+.tw{max-height:26rem;overflow:auto;border:1px solid var(--bd);border-radius:.75rem;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:.85rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+th,td{padding:.6rem .85rem;text-align:right;border-bottom:1px solid var(--bd)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0}
+th{position:sticky;top:0;background:var(--inp);color:var(--muted);font-size:.75rem;font-weight:600;z-index:2}
+th:first-child{z-index:3}
+td:first-child{background:var(--card);font-weight:600}
+th.set{color:var(--acc)}
+td.set{background:color-mix(in srgb,var(--acc) 9%,var(--card));font-weight:700}
+tfoot td{font-weight:700;background:var(--inp);position:sticky;bottom:0}
+.tw .best td{background:var(--gbg)}
+.bdg{display:inline-flex;align-items:center;gap:.35rem;font-size:.75rem;font-weight:600;padding:.15rem .6rem;border-radius:999px}
+.bdg.g{background:var(--gbg);color:var(--g)}.bdg.a{background:var(--abg);color:var(--a)}.bdg.r{background:var(--rbg);color:var(--r)}
+.sw{position:relative;flex:none;width:3rem;height:1.75rem}
+.sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1}
+.sw i{position:absolute;inset:0;border-radius:999px;background:var(--muted);transition:background .15s}
+.sw i::after{content:"";position:absolute;top:.2rem;left:.2rem;width:1.35rem;height:1.35rem;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.sw input:checked+i{background:var(--acc)}
+.sw input:checked+i::after{transform:translateX(1.25rem)}
+.sw input:focus-visible+i{outline:2px solid var(--acc);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.sw i,.sw i::after,.shell,.sbt svg{transition:none}}
+.lnk{color:var(--acc);font:inherit;font-size:.78rem;font-weight:700;background:none;border:0;padding:.25rem;cursor:pointer;text-decoration:underline}
+</style>
+</head>
+<body>
+<div id="shell" class="shell min-h-screen">
+  <aside class="side">
+    <div class="top"><div class="brand"><span class="rounded-xl p-2" style="background:var(--acc);color:var(--accfg)"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span><span class="bt">Loan Calculator</span></div><button type="button" id="sbt" class="sbt" aria-controls="nav" aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div>
+    <nav id="nav" aria-label="Calculation views"></nav>
+  </aside>
+  <main class="w-full max-w-5xl mx-auto p-4 pb-10 space-y-4">
+    <template id="tpl-form"><form id="f" class="card" style="border-top:3px solid var(--acc)" novalidate>
+      <h3 class="font-bold text-lg">Loan details</h3>
+      <p class="text-sm mb-3" style="color:var(--muted)">These details feed every calculation. Change them here only.</p>
+      <div id="main" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+      <div class="flex gap-3 mt-4">
+        <button id="go" type="submit" class="btn flex-1 sm:flex-none">Calculate</button>
+        <button id="reset" type="button" class="btn2 flex-1 sm:flex-none">Reset</button>
+      </div>
+      <p id="err" role="alert" class="text-sm font-semibold mt-3" style="color:var(--r)"></p>
+    </form></template>
+    <div id="views" class="space-y-4"></div>
+      <p class="text-xs" style="color:var(--muted)">These are estimates. The interest rate is worked out from your loan amount, EMI and tenure (monthly compounding). Part-payment assumes no extra charge, and pre-close assumes foreclosure is allowed after the stated number of EMIs. Please confirm all figures with your loan agreement.</p>
+  </main>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const inr=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const inr2=n=>'₹'+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sn=n=>(n<0?'−':'')+inr(Math.abs(n));
+const P_={cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18m-12 6 2 2 4-4"/>',
+layers:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/>',
+check:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+alert:'<path d="m10.3 3.9-8.5 14.7A2 2 0 0 0 3.5 21.5h17a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+rupee:'<path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3c6.7 0 6.7-10 0-10"/>',
+trend:'<path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/>',
+pct:'<path d="M19 5 5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+spark:'<path d="M12 3l2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4z"/>',
+date:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 15h3"/>',
+info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>'};
+const ic=(n,c='w-5 h-5')=>`<svg class="${c} shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P_[n]}</svg>`;
+const DOT='<svg class="w-2 h-2" viewBox="0 0 8 8" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>';
+const fld=(id,l,d)=>`<div><label class="lbl" for="${id}">${l}</label><input id="${id}" class="inp" type="number" inputmode="decimal" min="0" step="any" value="${d}" placeholder="Enter value"></div>`;
+
+/* ---- views ---- */
+const V=[
+ {id:'normal',l:'Normal Calculation',s:'Normal',sub:'Loan summary and schedule',i:'rupee',d:'Enter your loan details here. Every other view uses them. See what you pay with only your regular EMI.'},
+ {id:'pre',l:'Pre-Close Calculation',s:'Pre-Close',sub:'Close the loan early',i:'cal',d:'Find the best month to pay off the whole loan in one go.',f:fld('fc','Closing charge (%)',4.7)+fld('lock','Allowed after (months)',3)},
+ {id:'part',l:'Partly Payment Calculation',s:'Partly Payment',sub:'Pay extra every month',i:'layers',d:'See how much sooner you finish if you add extra to every EMI.',f:fld('extra','Extra every month (₹)',5000)},
+ {id:'cust',l:'Custom Year Calculation',s:'Custom Year',sub:'Choose your own end date',i:'clock',d:'Tell us when you want to be loan-free. We show the extra monthly amount you need.',f:fld('cy','Years',1)+fld('cm','Months',6)},
+ {id:'spec',l:'Special Calculation',s:'Special',sub:'Compare pre-close and part-payment',i:'spark',d:'Which saves you more: closing early or paying extra every month? Needs both Pre-Close and Partly Payment switched on.',adv:1},
+ {id:'dc',l:'Date Calculator',s:'Date Calc',sub:'Months to years, age to birth year',i:'date',d:'Two quick tools: turn months into years, and find a birth year from an age.',tool:1}];
+$('nav').innerHTML=V.map(x=>(x.adv?'<div class="sep" role="separator"><span>ADVANCED</span></div>':x.tool?'<div class="sep" role="separator"><span>TOOLS</span></div>':'')+`<button type="button" class="nv" data-v="${x.id}" title="${x.l}" aria-label="${x.l}">${ic(x.i,'w-5 h-5')}<span><b class="nf">${x.l}</b><b class="ns">${x.s}</b><small>${x.sub}</small></span></button>`).join('');
+const DC=`<div class="card space-y-3"><div><h3 class="font-bold text-lg">Months to years</h3><p class="text-sm" style="color:var(--muted)">Turn a number of months into years and months.</p></div><div class="scn sm:max-w-xs">${fld('dm','Total months',39)}</div><div id="dm-out" aria-live="polite"></div></div>
+<div class="card space-y-3"><div><h3 class="font-bold text-lg">Age to birth year</h3><p class="text-sm" style="color:var(--muted)">Find the year a customer was born from their age.</p></div><div class="scn sm:max-w-xs">${fld('da','Customer age (years)',45)}</div><div id="da-out" aria-live="polite"></div></div>`;
+const TG={pre:['Pre-Close analysis','Switch on to find the best month to close the loan.'],part:['Partly Payment analysis','Switch on to see the effect of paying extra every month.'],cust:['Custom Year analysis','Switch on to set your own target end date.']};
+$('views').innerHTML=V.map(x=>{const t=TG[x.id];return `<section class="view hidden space-y-4" data-v="${x.id}"><div><h2 class="text-xl font-bold">${x.l}</h2><p class="text-sm" style="color:var(--muted)">${x.d}</p></div>${x.id==='normal'?$('tpl-form').innerHTML:x.id==='dc'?DC:''}${t?`<label class="card flex items-center justify-between gap-4 cursor-pointer"><span><b>${t[0]}</b><small class="block text-xs" style="color:var(--muted)">${t[1]}</small></span><span class="sw"><input type="checkbox" role="switch" id="on-${x.id}" aria-label="${t[0]}"><i></i></span></label><div id="b-${x.id}" class="hidden space-y-4"><div class="scn card grid grid-cols-2 gap-3 sm:max-w-md">${x.f}</div><div id="o-${x.id}" class="res space-y-4" aria-live="polite"></div></div>`:`<div id="o-${x.id}" class="res space-y-4" aria-live="polite"></div>`}</section>`}).join('');
+$('main').innerHTML=fld('base','Loan amount you received (₹)',88000)+fld('prin','Loan amount in agreement (₹)',96839)+fld('emi','Monthly EMI (₹)',4207)+fld('ten','Tenure (months)',36);
+
+/* ---- maths ---- */
+let cur='normal',ST=null;
+const v=id=>{const s=$(id).value.trim();return s===''?0:Number(s)};
+function solve(P,E,n){if(E*n<=P)return NaN;let lo=1e-9,hi=1;for(let i=0;i<200;i++){const m=(lo+hi)/2;E*(1-Math.pow(1+m,-n))/m>P?lo=m:hi=m}return(lo+hi)/2}
+function sched(P,r,pay,n){const R=[];let b=P;for(let m=1;b>.005&&m<=1200;m++){const i=b*r;let p=pay-i,paid=pay;if(p>=b-.005||(n&&m===n)){p=b;paid=b+i}const c=Math.max(0,b-p);R.push({m,paid,i,p,c,sp:P-c});b=c}return R}
+const sum=(a,k)=>a.reduce((s,x)=>s+x[k],0);
+function preRows(S,stdPaid,f,L){const o=[];let cum=0,ci=0;S.forEach(x=>{cum+=x.paid;ci+=x.i;if(x.m>=Math.max(1,L)&&x.c>.5){const fee=x.c*f/100,lump=x.c+fee,rem=stdPaid-cum;o.push({m:x.m,b:x.c,sp:x.sp,fee,lump,gross:rem-x.c,net:rem-lump,cum,ci})}});return o}
+const dur=m=>[Math.floor(m/12)?Math.floor(m/12)+(m>=24?' years':' year'):'',m%12?m%12+(m%12>1?' months':' month'):''].filter(Boolean).join(' ')||'0 months';
+function rng(a){const o=[];let s=a[0],p=a[0];for(let i=1;i<=a.length;i++){const c=a[i];if(c!==p+1){o.push(s===p?''+s:s+'–'+p);s=c}p=c}return 'Month '+o.join(', ')}
+
+/* ---- building blocks ---- */
+const kpi=(i,l,val,sub)=>`<div class="card kpi"><div class="lbl flex items-center gap-2" style="margin:0">${ic(i,'w-4 h-4')}<span>${l}</span></div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
+const adv=(c,i,t,h,b,f)=>`<div class="adv ${c}"><div class="flex items-center gap-2 font-semibold t">${ic(i)}<span>${t}</span></div><div class="text-xl font-bold mt-2 t">${h}</div><p class="text-sm mt-1">${b}</p><p class="text-xs mt-2" style="color:var(--muted)">${f}</p></div>`;
+const td=(a,s)=>a.map((x,i)=>`<td${i===s?' class="set"':''}>${x}</td>`).join('');
+const tbl=(h,body,foot='',s=-1)=>`<div class="tw"><table><thead><tr>${h.map((x,i)=>`<th${i===s?' class="set"':''}>${x}</th>`).join('')}</tr></thead><tbody>${body}</tbody>${foot}</table></div>`;
+const head=(t,s)=>`<div><h3 class="font-semibold text-lg">${t}</h3><p class="text-xs" style="color:var(--muted)">${s}</p></div>`;
+const g3=(...a)=>`<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">${a.join('')}</div>`;
+const msg=t=>`<p class="text-sm font-semibold" style="color:var(--r)">${t}</p>`;
+const note=t=>`<div class="card flex items-center gap-2 text-sm">${ic('info')}<span>${t}</span></div>`;
+const stable=(A,pl)=>tbl(['Month',pl,'Interest','Principal','Balance left','Settled amount'],
+  A.map(x=>`<tr>`+td([x.m,inr(x.paid),inr(x.i),inr(x.p),inr(x.c),inr(x.sp)],5)+`</tr>`).join(''),
+  `<tfoot><tr>${td(['Total',inr(sum(A,'paid')),inr(sum(A,'i')),inr(sum(A,'p')),'',''])}</tr></tfoot>`,5);
+const SET='“Settled amount” is the part of the loan you have repaid so far.';
+
+/* ---- view 1: normal ---- */
+function vNormal(){
+  const {P,E,n,r,S,paid,int,base}=ST,rb=base>0?solve(base,E,n):NaN,ok=isFinite(rb)&&base>0,pi=int/paid*100;
+  return `<div class="card"><div class="lbl" style="margin:0">You will pay in total</div><div class="text-3xl font-extrabold mt-1">${inr(paid)}</div>
+    <div class="bar" role="img" aria-label="${(100-pi).toFixed(0)}% loan, ${pi.toFixed(0)}% interest"><i style="width:${100-pi}%"></i></div>
+    <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm"><span class="flex items-center gap-2"><svg class="w-3 h-3" viewBox="0 0 8 8" style="color:var(--acc)" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>Loan ${inr(P)}</span><span class="flex items-center gap-2"><svg class="w-3 h-3" viewBox="0 0 8 8" style="color:var(--a)" aria-hidden="true"><circle cx="4" cy="4" r="4" fill="currentColor"/></svg>Interest ${inr(int)}</span></div></div>`+
+    `<div class="grid grid-cols-2 lg:grid-cols-3 gap-3">`+
+    kpi('rupee','Monthly EMI',inr(E),`for ${n} months`)+
+    kpi('trend','Total interest',inr(int),`${pi.toFixed(1)}% of what you pay`)+
+    kpi('pct','Yearly interest rate',(r*1200).toFixed(2)+'%','on the reducing balance')+`</div>`+
+    (ok?note(`On the ${inr(base)} you actually received, the real cost is about ${(rb*1200).toFixed(1)}% a year`+(P>base?` because ${inr(P-base)} of charges were added to the loan.`:'.')):'')+
+    head('Month-by-month schedule',`How each EMI is split between interest and principal. ${SET}`)+stable(S,'EMI');
+}
+
+/* ---- view 2: pre-close ---- */
+function vPre(){
+  const {n,S,paid}=ST,f=v('fc'),L=Math.round(v('lock'));
+  if([f,L].some(x=>!isFinite(x)||x<0))return msg('Please enter valid, positive numbers.');
+  const rows=preRows(S,paid,f,L);
+  if(!rows.length)return note('You cannot pre-close: the loan ends before closing is allowed.');
+  const mx=Math.max(...rows.map(x=>x.net));
+  rows.forEach(x=>x.z=(mx<=0||x.net<=0||x.net<.1*mx)?'r':x.net>=.5*mx?'g':'a');
+  const best=rows.find(x=>x.net===mx),G=rows.filter(x=>x.z=='g'),B=rows.filter(x=>x.z=='r'),be=rows.find(x=>x.net<=0),lab={g:'Recommended',a:'Fair',r:'Not worth it'};
+  return g3(kpi('cal','Best month to close','Month '+best.m,`after paying ${best.m} EMIs`),
+      kpi('rupee','Amount to pay that month',inr(best.lump),`${inr(best.b)} balance + ${inr(best.fee)} charge`),
+      kpi('trend','Interest you save',sn(best.net),'after the closing charge'))+
+    `<div class="grid md:grid-cols-2 gap-3">`+
+    adv('g','check','Good months to close',G.length?rng(G.map(x=>x.m)):'None',
+      `Closing in month ${best.m} saves the most: ${sn(best.net)} compared with paying all ${n} EMIs.`,'The earlier you close, the more interest you avoid.')+
+    adv('r','alert','Not worth it',B.length?rng(B.map(x=>x.m)):'None',
+      B.length?`From month ${B[0].m}, the ${f}% charge is about as much as the interest left to pay.`+(be?` After month ${be.m} the charge is higher than the remaining interest.`:''):'Closing early saves money in every allowed month.',
+      'In these months, keep paying your regular EMI.')+`</div>`+
+    head('Pre-close schedule',`You can close after ${Math.max(1,L)} EMIs. “You save” is the interest avoided minus the closing charge. ${SET}`)+
+    tbl(['Month','Balance left','Settled amount',`Charge (${f}%)`,'Pay to close','Interest saved','You save','Verdict'],
+      rows.map(x=>`<tr class="${x===best?'best':''}">`+td([x.m,inr(x.b),inr(x.sp),inr(x.fee),inr(x.lump),inr(x.gross),sn(x.net),`<span class="bdg ${x.z}">${DOT}${lab[x.z]}</span>`],2)+`</tr>`).join(''),'',2);
+}
+
+/* ---- view 3: partly payment ---- */
+function vPart(){
+  const {P,E,n,r,int:si}=ST,X=v('extra');
+  if(!isFinite(X)||X<0)return msg('Please enter a valid, positive amount.');
+  if(!(X>0))return note('Enter an extra monthly amount above to see how much sooner you finish.');
+  const A=sched(P,r,E+X,0),nt=A.length,sv=n-nt,ia=sum(A,'i');
+  return g3(kpi('clock','New loan length',nt+' months',`instead of ${n} months`),
+      kpi('cal','Time saved',sv+' months',`${(sv/12).toFixed(1)} years sooner`),
+      kpi('trend','Interest you save',inr(si-ia),`${inr(si)} down to ${inr(ia)}`))+
+    head('Your new schedule',`Every month you pay ${inr(E)} EMI + ${inr(X)} extra, starting from month 1. ${SET}`)+stable(A,'You pay');
+}
+
+/* ---- view 4: custom year ---- */
+function vCust(){
+  const {P,E,n,r,int:si}=ST,cy=v('cy'),cm=v('cm');
+  if([cy,cm].some(x=>!isFinite(x)||x<0))return msg('Please enter valid, positive numbers.');
+  const tm=cy*12+cm,T=Math.round(tm);
+  if(!(tm>0))return note('Enter years and months above (for example 1 year and 6 months).');
+  if(T<1)return msg('The target must be at least 1 month.');
+  if(T>=n)return adv('a','info','No extra payment needed',`${dur(T)} is not shorter than ${dur(n)}`,`Your regular EMI already ends the loan in ${n} months.`,'Enter a shorter target to see the extra amount you need.');
+  const M=r>1e-12?P*r/(1-Math.pow(1+r,-T)):P/T,x=M-E,A=sched(P,r,M,T),ia=sum(A,'i');
+  return g3(kpi('rupee','Extra needed every month',inr2(x),`${inr2(M)} in total (${inr(E)} EMI + extra)`),
+      kpi('clock','Loan ends in',dur(T),`${n-T} months sooner than ${n}`),
+      kpi('trend','Interest you save',inr(si-ia),`${inr(si)} down to ${inr(ia)}`))+
+    head(`Schedule to finish in ${dur(T)}`,`Pay ${inr2(x)} extra with every EMI from month 1. Rounding up to ${inr(Math.ceil(x))} also finishes on time. ${SET}`)+stable(A,'You pay');
+}
+
+/* ---- view 5: special (renders only when opened) ---- */
+function vSpec(){
+  const {P,E,n,r,S,paid:stdPaid,int:stdInt}=ST,f=v('fc'),L=Math.round(v('lock'));let X=v('extra'),auto=false;
+  if([f,L,X].some(x=>!isFinite(x)||x<0))return msg('Please enter valid numbers in the Pre-Close and Partly Payment views first.');
+  if(!(X>0)){X=Math.max(100,Math.round(E/200)*100);auto=true}
+  const rows=preRows(S,stdPaid,f,L),mx=rows.length?Math.max(...rows.map(x=>x.net)):0,best=mx>0?rows.find(x=>x.net===mx):null;
+  const A=sched(P,r,E+X,0),nt=A.length,ia=sum(A,'i'),ppPaid=sum(A,'paid'),pp=stdInt-ia,pc=best?best.net:0,win=!!best&&pc>pp,diff=Math.abs(pc-pp);
+  let be=0,bn=0;
+  if(win){let lo=X,hi=Math.max(P*(1+r)-E,X+1);for(let i=0;i<60;i++){const k=(lo+hi)/2;stdInt-sum(sched(P,r,E+k,0),'i')>=pc?hi=k:lo=k}be=Math.ceil(hi);bn=sched(P,r,E+be,0).length}
+  const D='—',B=!!best,no=rows.length?'No saving after the charge':'Not allowed before the loan ends';
+  const bd=` <span class="bdg g">${ic('check','w-3 h-3')}Best</span>`;
+  const g=win?adv('g','check','Better choice: pre-close',`Close in month ${best.m}`,
+      `Pay ${inr(best.lump)} (balance ${inr(best.b)} + ${f}% charge ${inr(best.fee)}) after ${best.m} EMIs. You save ${inr(pc)}, which is ${inr(diff)} more than the ${inr(pp)} saved by paying ${inr(X)} extra every month.`,
+      `It also ends the loan ${n-best.m} months early, against ${n-nt} months with part-payment.`)
+    :adv('g','check','Better choice: part-payment',`Pay ${inr(X)} extra every month`,
+      `The loan ends in ${nt} months (${n-nt} sooner) and you save ${inr(pp)}`+(B?`, which is ${inr(diff)} more than the best pre-close option (month ${best.m}: ${inr(pc)} saved after the charge).`:`. Pre-closing is not worthwhile here: ${rows.length?`the ${f}% charge is more than the interest it avoids.`:'the loan ends before closing is allowed.'}`),
+      'No part-payment charge is assumed.');
+  const k=win?adv('a','info','Keep in mind',`You need ${inr(best.lump)} at once`,
+      `If you cannot arrange the full amount, paying about ${inr(be)} extra every month (loan ends in ${bn} months) gives a similar saving.`,
+      `Pre-close includes a ${f}% charge; part-payment has none.`)
+    :adv('a','info','Keep in mind',`${inr(E+X)} every month`,
+      `You pay ${inr(X)} more than your EMI for about ${nt} months.`+(B?` Pre-closing would need ${inr(best.lump)} at once.`:''),
+      auto?`You have not entered an extra amount, so ${inr(X)} (about half your EMI) is used here.`:'Change the extra amount in the Partly Payment view to try another figure.');
+  const R=[
+    ['Plan','Pay EMI only',B?`Pay ${best.m} EMIs, then close`:no,`EMI + ${inr(X)} extra`],
+    ['Loan ends in',`${n} months`,B?`${best.m} months`:D,`${nt} months`],
+    ['Months saved',D,B?`${n-best.m} months`:D,`${n-nt} months`],
+    ['Monthly payment',inr(E),B?`${inr(E)} until month ${best.m}`:D,inr(E+X)],
+    ['One-time payment',D,B?inr(best.lump):D,'None'],
+    ['Closing charge',D,B?`${inr(best.fee)} (${f}%)`:D,'₹0'],
+    ['Interest + charges',inr(stdInt),B?inr(best.ci+best.fee):D,inr(ia)],
+    ['Total you pay',inr(stdPaid),B?inr(best.cum+best.lump):D,inr(ppPaid)]];
+  return note(`Based on a ${f}% closing charge after ${Math.max(1,L)} EMIs (set in Pre-Close) and ${inr(X)} extra every month (set in Partly Payment). Change them there to update this page.`)+
+    g3(kpi('cal',B?`Pre-close (month ${best.m})`:'Pre-close',inr(pc),B?`saved after a ${inr(best.fee)} charge`:no),
+      kpi('layers','Part-payment',inr(pp),`saved; loan ends in ${nt} months`),
+      kpi('trend','Difference',inr(diff),(win?'Pre-closing':'Part-payment')+' saves more'))+
+    `<div class="grid md:grid-cols-2 gap-3">${g}${k}</div>`+
+    tbl(['Compare','Pay EMI only','Pre-close'+(win?bd:''),'Part-payment'+(win?'':bd)],
+      R.map(x=>`<tr>${td(x)}</tr>`).join('')+`<tr class="best">${td(['Interest you save',D,B?inr(pc):D,inr(pp)])}</tr>`);
+}
+
+/* ---- wiring ---- */
+const R={normal:vNormal,pre:vPre,part:vPart,cust:vCust,spec:vSpec};
+const on=id=>$('on-'+id).checked,sync=id=>$('b-'+id).classList.toggle('hidden',!on(id));
+const nov=h=>`<div class="card text-center py-10"><div class="text-xl font-bold">No value</div><p class="text-sm mt-1" style="color:var(--muted)">${h}</p></div>`,HINT='Fill in the loan details in Normal Calculation first.';
+const GO=(id,l)=>`<button type="button" class="lnk" data-go="${id}">${l}</button>`;
+function dcRun(){
+  const m=$('dm').value.trim(),a=$('da').value.trim(),yr=new Date().getFullYear();
+  $('dm-out').innerHTML=m===''?'':!/^\d+$/.test(m)?msg('Enter a whole number of months, like 36 or 39.'):
+    `<div class="text-2xl font-extrabold" style="color:var(--acc);text-transform:capitalize">${dur(+m)}</div><p class="text-sm" style="color:var(--muted)">${(+m).toLocaleString('en-IN')} months in total (${+(m/12).toFixed(2)} years)</p>`;
+  $('da-out').innerHTML=a===''?'':!/^\d+$/.test(a)||+a>120?msg('Enter an age between 0 and 120.'):
+    `<div class="text-2xl font-extrabold" style="color:var(--acc)">Born in ${yr-a}</div><p class="text-sm" style="color:var(--muted)">Estimate based on ${yr}. If the birthday has not come yet this year, the birth year is ${yr-a-1}.</p>`;
+}
+function render(){
+  if(cur==='dc')return dcRun();
+  const o=$('o-'+cur);
+  if(cur==='normal')o.innerHTML=ST?vNormal():nov('Fill in all four loan details above.');
+  else if(cur==='spec')o.innerHTML=on('pre')&&on('part')?(ST?vSpec():nov(HINT)):note('Please enable both Pre-Close and Partly Payment toggles in their respective views to run the Special Comparison analysis.')+`<div class="flex flex-wrap gap-3">${GO('pre','Open Pre-Close')}${GO('part','Open Partly Payment')}</div>`;
+  else o.innerHTML=!on(cur)?'':ST?R[cur]():nov(HINT);
+}
+['pre','part','cust'].forEach(id=>$('on-'+id).addEventListener('change',()=>{sync(id);render()}));
+function show(id,scroll){
+  cur=id;
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('hidden',s.dataset.v!==id));
+  document.querySelectorAll('.nv').forEach(b=>b.dataset.v===id?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+  render();
+  if(scroll)innerWidth<960?$('views').scrollIntoView():scrollTo(0,0);
+}
+document.querySelectorAll('.nv').forEach(b=>b.onclick=()=>show(b.dataset.v,true));
+document.querySelectorAll('.scn input').forEach(e=>e.addEventListener('input',render));
+const dim=()=>document.querySelectorAll('.res').forEach(e=>e.classList.add('opacity-40','pointer-events-none')),undim=()=>document.querySelectorAll('.res').forEach(e=>e.classList.remove('opacity-40','pointer-events-none'));
+function bad(m){$('err').textContent=m+(ST?' Showing your last valid result.':'');ST&&dim()}
+function run(){
+  $('err').textContent='';
+  if(['base','prin','emi','ten'].some(id=>$(id).value.trim()===''))return ST=null,undim(),render(),false;
+  const P=v('prin'),E=v('emi'),n=Math.round(v('ten'));
+  if([v('base'),P,E,v('ten')].some(x=>!isFinite(x)||x<0)||!(P>0)||!(E>0)||!(n>0))return bad('Please enter valid positive numbers.');
+  if(E*n<=P)return bad('EMI × tenure must be greater than the loan amount in the agreement.');
+  const r=solve(P,E,n),S=sched(P,r,E,n);
+  ST={base:v('base'),P,E,n,r,S,paid:sum(S,'paid'),int:sum(S,'i')};
+  undim();render();return true;
+}
+$('f').addEventListener('submit',e=>{e.preventDefault();if(run())$('o-normal').scrollIntoView()});
+$('main').addEventListener('input',()=>run());
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g)show(g.dataset.go,true)});
+$('reset').onclick=()=>{
+  ['base','prin','emi','ten','extra','cy','cm','fc','lock','dm','da'].forEach(id=>{const e=$(id);e.value='';e.defaultValue=''});
+  ['pre','part','cust'].forEach(id=>{$(`on-${id}`).checked=false;sync(id)});ST=null;$('err').textContent='';undim();render();$('base').focus();
+};
+const SB=$('shell'),sbt=$('sbt');
+function setSB(c,save){SB.classList.toggle('collapsed',c);const t=c?'Expand sidebar':'Collapse sidebar';sbt.setAttribute('aria-expanded',!c);sbt.setAttribute('aria-label',t);sbt.title=t;if(save)try{localStorage.setItem('lc-sidebar',c?'1':'0')}catch(e){}}
+sbt.onclick=()=>setSB(!SB.classList.contains('collapsed'),1);
+try{setSB(localStorage.getItem('lc-sidebar')==='1')}catch(e){}
+show('normal');run();
+</script>
+</body>
+</html>
