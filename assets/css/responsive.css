@@ -1,0 +1,6 @@
+
+@media(min-width:960px){#views,.res{scroll-margin-top:4.5rem}}
+
+@media(prefers-reduced-motion:reduce){.sw i,.sw i::after,.shell,.sbt svg{transition:none}}
+
+@media(prefers-reduced-motion:reduce){.mdl,.mdl.open,.mdl-card{transition:none}.mdl-t{display:none}}

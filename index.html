@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loan Calculator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230e7490'/%3E%3Cpath d='M9 22l5-6 4 3 6-8' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+<div id="shell" class="shell min-h-screen">
+  <aside class="side">
+    <div class="top"><div class="brand"><span class="rounded-xl p-2" style="background:var(--acc);color:var(--accfg)"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span><span class="bt">Loan Calculator</span></div><div class="tools"><button type="button" id="ib" class="sbt ibtn" aria-haspopup="dialog" aria-controls="im" aria-label="Show interest rate info" title="Interest rate info"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button><button type="button" id="sbt" class="sbt dsk" aria-controls="nav" aria-expanded="true" aria-label="Collapse sidebar" title="Collapse sidebar"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div></div>
+    <nav id="nav" aria-label="Calculation views"></nav>
+  </aside>
+  <main class="w-full max-w-5xl mx-auto p-4 pb-10 space-y-4">
+    <template id="tpl-form"><form id="f" class="card" style="border-top:3px solid var(--acc)" novalidate>
+      <h3 class="font-bold text-lg">Loan details</h3>
+      <p class="text-sm mb-3" style="color:var(--muted)">These details feed every calculation. Change them here only.</p>
+      <div id="main" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></div>
+      <div class="flex gap-3 mt-4">
+        <button id="go" type="submit" class="btn flex-1 sm:flex-none">Calculate</button>
+        <button id="reset" type="button" class="btn2 flex-1 sm:flex-none">Reset</button>
+      </div>
+      <p id="err" role="alert" class="text-sm font-semibold mt-3" style="color:var(--r)"></p>
+    </form></template>
+    <div id="views" class="space-y-4"></div>
+      <p class="text-xs" style="color:var(--muted)">These are estimates. The interest rate is worked out from your loan amount, EMI and tenure (monthly compounding). Part-payment assumes no extra charge, and pre-close assumes foreclosure is allowed after the stated number of EMIs. Please confirm all figures with your loan agreement.</p>
+  </main>
+</div>
+
+<div id="im" class="mdl" aria-hidden="true">
+  <div class="mdl-bg" id="im-bg"></div>
+  <div class="mdl-card" role="dialog" aria-modal="true" aria-labelledby="im-h">
+    <button type="button" id="im-x" class="sbt mdl-x" aria-label="Close interest rate info" title="Close"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <div class="mdl-b" id="im-body"></div>
+    <div class="mdl-t" aria-hidden="true"><i id="im-bar"></i></div>
+  </div>
+</div>
+
+<script src="assets/js/state.js"></script>
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/calculations/emi.js"></script>
+<script src="assets/js/calculations/amortization.js"></script>
+<script src="assets/js/calculations/prepayment.js"></script>
+<script src="assets/js/ui/tables.js"></script>
+<script src="assets/js/calculations/yearly-optimizer.js"></script>
+<script src="assets/js/calculations/special-calculation.js"></script>
+<script src="assets/js/calculations/date-calculator.js"></script>
+<script src="assets/js/ui/renderers.js"></script>
+<script src="assets/js/ui/modals.js"></script>
+<script src="assets/js/validation.js"></script>
+<script src="assets/js/navigation.js"></script>
+</body>
+</html>
