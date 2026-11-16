@@ -1,28 +1,41 @@
 /* ---- view 5: special (renders only when opened) ---- */
 function vSpec(){
-  const {P,E,n,r,S,paid:stdPaid,int:stdInt}=ST,f=v('fc'),L=Math.round(v('lock'));let X=v('extra'),auto=false;
-  if([f,L,X].some(x=>!isFinite(x)||x<0))return msg('Please enter valid numbers in the Pre-Close and Partly Payment views first.');
-  if(!(X>0)){X=Math.max(100,Math.round(E/200)*100);auto=true}
-  const rows=preRows(S,stdPaid,f,L),mx=rows.length?Math.max(...rows.map(x=>x.net)):0,best=mx>0?rows.find(x=>x.net===mx):null;
-  const A=sched(P,r,E+X,0),nt=A.length,ia=sum(A,'i'),ppPaid=sum(A,'paid'),pp=stdInt-ia,pc=best?best.net:0,win=!!best&&pc>pp,diff=Math.abs(pc-pp);
+  const {P,E,n,r,S,paid:stdPaid,int:stdInt}=ST,preOn=on('pre'),partOn=on('part'),yearOn=on('yr'),
+    linkM=preOn&&$('pim').checked,linkY=preOn&&$('piy').checked,f=v('fc'),L=Math.round(v('lock'));
+  let X=partOn||linkM?v('extra'):0,auto=false;
+  if(preOn&&[f,L].some(x=>!isFinite(x)||x<0))return msg('Please enter valid numbers in the Pre-Close view first.');
+  if((partOn||linkM)&&(!isFinite(X)||X<0))return msg('Please enter a valid, positive amount in Partly Payment.');
+  if((partOn||linkM)&&!(X>0)){X=Math.max(100,Math.round(E/200)*100);auto=true}
+  const rows=preOn?preRows(S,stdPaid,f,L):[],mx=rows.length?Math.max(...rows.map(x=>x.net)):0,
+    preBest=rows.length?rows.find(x=>x.net===mx):null,best=preBest&&preBest.net>0?preBest:null;
+  const A=sched(P,r,E+X,0),nt=A.length,ia=sum(A,'i'),ppPaid=sum(A,'paid'),pp=stdInt-ia,pc=best?best.net:0;
   const D='—',B=!!best,no=rows.length?'No saving after the charge':'Not allowed before the loan ends';
   const bd=` <span class="bdg g">${ic('check','w-3 h-3')}Best</span>`;
-  /* yearly plan (year-wise amounts from Yearly Optimizer) and the overall best plan */
-  const yOn=on('yr'),Y=yOn?yrPlan():null,YY=Y&&!Y.err&&!Y.none?Y:null,yMsg=Y&&(Y.err||Y.none),
-    top=[['part',pp],['pre',B?pc:-Infinity],['yr',YY?YY.net:-Infinity]].sort((a,b)=>b[1]-a[1])[0][0];
-  /* combined strategies: part-payments for d months, then pre-close in month m (every d and every m is tried) */
-  const Qin=YY?yrInputs():null,CS=comboSearch(f,L,X,Qin),CB=CS.length?CS.reduce((a,c)=>c.best.net>a.best.net+1e-9?c:a).best:null,
-    topAll=[['pre',B?pc:-Infinity],['part',pp],['yr',YY?YY.net:-Infinity],['combo',CB?CB.net:-Infinity]].sort((a,b)=>b[1]-a[1])[0][0];
+  /* The view toggles select standalone plans; the Pre-Close switches select combinations. */
+  const Y=yearOn||linkY?yrPlan():null,YY=Y&&!Y.err&&!Y.none?Y:null,yMsg=Y&&(Y.err||Y.none),
+    Qin=linkY&&YY?yrInputs():null,
+    CS=preOn&&(linkM||linkY)?comboSearch(f,L,linkM?X:0,Qin):[],
+    CB=CS.length?CS.reduce((a,c)=>c.best.net>a.best.net+1e-9?c:a).best:null;
+  const ranked=[
+    {key:'regular',name:'Regular EMI only',net:0},
+    ...(preOn&&preBest?[{key:'pre',name:'Pre-close only',net:preBest.net}]:[]),
+    ...(partOn?[{key:'part',name:'Monthly part-payment only',net:pp}]:[]),
+    ...(yearOn&&YY?[{key:'yr',name:'Yearly part-payment only',net:YY.net}]:[]),
+    ...CS.map(F=>({key:'combo',name:F.nm,net:F.best.net,fam:F,best:F.best}))
+  ].sort((a,b)=>b.net-a.net);
+  const topAll=ranked[0].key,
+    standalone=ranked.find(x=>x.key!=='regular'&&x.key!=='combo'&&x.net>0),
+    top=standalone?standalone.key:'regular';
   SPC=null;
   /* smart suggestions: what monthly / yearly part-payments give the same saving as the best other plan? */
-  const tgtPre=B&&pc>pp,tgt=tgtPre?pc:pp,tgtNm=tgtPre?'pre-close':'monthly part-payment';
+  const tgt=B&&pc>pp?pc:pp;
   let be=0,bn=0,ye=null;
   if(top==='pre'){
     let lo=X,hi=Math.max(P*(1+r)-E,X+1);
     for(let i=0;i<60;i++){const k=(lo+hi)/2;stdInt-sum(sched(P,r,E+k,0),'i')>=pc?hi=k:lo=k}
     be=Math.ceil(hi);bn=sched(P,r,E+be,0).length;
   }
-  if(yOn&&top!=='yr')ye=yrEq(tgt);
+  if(yearOn&&YY&&(top==='pre'||top==='part'))ye=yrEq(tgt);
   const yLine=(q,nm)=>{
     const h=`<b>Yearly (${q.fq} time${s_(q.fq)} a year):</b> `;
     if(q.none)return h+`no equal yearly amount reaches the ${nm} saving with a ${q.ch}% charge, because the charge cancels too much of the interest saved.`;
@@ -31,12 +44,15 @@ function vSpec(){
       `. That is ${inr(pl.exs)} extra in all${last&&last.ex<q.k-.5?` (the last payment is only ${inr(last.ex)}, the balance left)`:''}. The loan ends in ${pl.len} months and you save ${inr(pl.net)}`+(q.ch>0?` after ${inr(pl.fees)} of charges (${q.ch}%)`:'')+`, which matches the ${nm} saving.`;
   };
   const yFoot=ye?` The yearly figure uses the ${ye.fq} payment${s_(ye.fq)} a year and ${ye.ch}% charge from Yearly Optimizer, with the same amount in every payment.`:'';
-  const g=win?adv('g','check','Better choice: pre-close',`Close in month ${best.m}`,
-      `Pay ${inr(best.lump)} (balance ${inr(best.b)} + ${f}% charge ${inr(best.fee)}) after ${best.m} EMIs. You save ${inr(pc)}, which is ${inr(diff)} more than the ${inr(pp)} saved by paying ${inr(X)} extra every month.`,
-      `It also ends the loan ${n-best.m} months early, against ${n-nt} months with part-payment.`)
-    :adv('g','check','Better choice: part-payment',`Pay ${inr(X)} extra every month`,
-      `The loan ends in ${nt} months (${n-nt} sooner) and you save ${inr(pp)}`+(B?`, which is ${inr(diff)} more than the best pre-close option (month ${best.m}: ${inr(pc)} saved after the charge).`:`. Pre-closing is not worthwhile here: ${rows.length?`the ${f}% charge is more than the interest it avoids.`:'the loan ends before closing is allowed.'}`),
-      'No part-payment charge is assumed.');
+  const winner=ranked[0],runnerUp=ranked[1],winnerGap=runnerUp?Math.max(0,winner.net-runnerUp.net):0,
+    g=adv('g','check',winner.key==='regular'?'Keep paying the regular EMI':winner.key==='combo'?'Best strategy: part-payments, then pre-close':`Best choice: ${winner.name}`,
+      winner.key==='combo'?`Pay part-payments for ${winner.best.d} months, then close in month ${winner.best.m}`:winner.name,
+      winner.key==='regular'?'None of the selected prepayment strategies saves more than continuing with the regular EMIs.':
+        `This option saves ${sn(winner.net)} after all charges.`+(runnerUp?` It is ${inr(winnerGap)} more than Rank #2 (${runnerUp.name}).`:''),
+      winner.key==='combo'?`Pay ${inr(winner.best.lump)} to close after ${inr(winner.best.ex)} of part-payments.`:
+        winner.key==='pre'?`Close in month ${best.m} after paying the ${f}% charge.`:
+        winner.key==='yr'?'Yearly prepayment charges are included in this saving.':
+        winner.key==='part'?'No part-payment charge is assumed.':'');
   let k;
   if(top==='pre'){
     k=adv('a','info','Keep in mind',`You need ${inr(best.lump)} at once`,
@@ -48,30 +64,75 @@ function vSpec(){
     k=adv('a','info','Keep in mind',`${inr(YY.exs)} in ${YY.cnt} part-payment${s_(YY.cnt)}`,
       `Your first part-payment of ${inr(fx.ex)} falls in month ${fx.m}.`+(B?` Pre-closing would need ${inr(best.lump)} at once.`:''),
       'Check that your lender allows this many part-payments a year, and any minimum amount.');
-  }else{
+  }else if(top==='part'){
     k=adv('a','info','Keep in mind',`${inr(E+X)} every month`,
       `You pay ${inr(X)} more than your EMI for about ${nt} months.`+(B?` Pre-closing would need ${inr(best.lump)} at once.`:'')+(ye?' To get the same saving with fewer payments:':''),
       (auto?`You have not entered an extra amount, so ${inr(X)} (about half your EMI) is used here.`:'Change the extra amount in the Partly Payment view to try another figure.')+yFoot,
       ye?ul([yLine(ye,'monthly part-payment')]):'');
+  }else{
+    k=adv('a','info','No prepayment recommendation',`Keep the ${inr(E)} regular EMI`,
+      'The enabled plans are included in the comparison; none saves more than the regular EMI baseline.',
+      'Change their amounts or charges in their respective views to compare different settings.');
   }
-  const R=[
-    ['Plan','Pay EMI only',B?`Pay ${best.m} EMIs, then close`:no,`EMI + ${inr(X)} extra`],
-    ['Loan ends in',`${n} months`,B?`${best.m} months`:D,`${nt} months`],
-    ['Months saved',D,B?`${n-best.m} months`:D,`${n-nt} months`],
-    ['Monthly payment',inr(E),B?`${inr(E)} until month ${best.m}`:D,inr(E+X)],
-    ['One-time payment',D,B?inr(best.lump):D,'None'],
-    ['Closing charge',D,B?`${inr(best.fee)} (${f}%)`:D,'₹0'],
-    ['Interest + charges',inr(stdInt),B?inr(best.ci+best.fee):D,inr(ia)],
-    ['Total you pay',inr(stdPaid),B?inr(best.cum+best.lump):D,inr(ppPaid)]];
-  const hd=['Compare','Pay EMI only','Pre-close'+(topAll==='pre'?bd:''),'Part-payment'+(topAll==='part'?bd:'')],last=['Interest you save',D,B?inr(pc):D,inr(pp)];
-  let yt='',kp=kpi('trend','Difference',inr(diff),(win?'Pre-closing':'Part-payment')+' saves more'),gg=g;
-  if(YY){
-    const y=YY,nm={pre:'pre-close',part:'monthly part-payment',yr:'yearly part-payment'},bv=Math.max(pp,B?pc:-Infinity,y.net),
-      hl=top==='pre'?`Close in month ${best.m}`:top==='part'?`Pay ${inr(X)} extra every month`:yrHead(y);
-    hd.push('Yearly plan'+(topAll==='yr'?bd:''));last.push(inr(y.net));
-    R[0].push(yrLab(y));R[1].push(`${y.len} months`);R[2].push(`${n-y.len} months`);R[3].push(inr(E));R[4].push(`${y.cnt} part-payment${s_(y.cnt)}`);R[5].push(`${inr(y.fees)} (${y.ch}%)`);R[6].push(inr(y.ia+y.fees));R[7].push(inr(sum(y.A,'pay')+y.exs+y.fees));
-    gg=adv('g','check','Best of the three: '+nm[top],hl,`Saves ${inr(bv)} after all charges. Pre-close: ${B?inr(pc):'not worthwhile'}. Monthly part-payment: ${inr(pp)}. Yearly plan: ${inr(y.net)}.`,`The yearly plan ends the loan in ${y.len} months (${n-y.len} sooner), with ${inr(y.fees)} of charges included.`);
-    kp=kpi('repeat','Yearly plan',inr(y.net),`saved; loan ends in ${y.len} months`);
+  const comparison=[
+    {key:'regular',label:'Pay EMI only',values:['Pay EMI only',`${n} months`,D,inr(E),D,'₹0',inr(stdInt),inr(stdPaid),inr(0)]}
+  ];
+  if(preOn)comparison.push({key:'pre',label:'Pre-close',values:[
+    preBest?`Pay ${preBest.m} EMIs, then close`:no,preBest?`${preBest.m} months`:D,
+    preBest?`${n-preBest.m} months`:D,preBest?`${inr(E)} until month ${preBest.m}`:D,
+    preBest?inr(preBest.lump):D,preBest?`${inr(preBest.fee)} (${f}%)`:D,
+    preBest?inr(preBest.ci+preBest.fee):D,preBest?inr(preBest.cum+preBest.lump):D,
+    preBest?sn(preBest.net):D
+  ]});
+  if(partOn)comparison.push({key:'part',label:'Part-payment',values:[
+    `EMI + ${inr(X)} extra`,`${nt} months`,`${n-nt} months`,inr(E+X),'None','₹0',
+    inr(ia),inr(ppPaid),sn(pp)
+  ]});
+  if(yearOn)comparison.push({key:'yr',label:'Yearly plan',values:YY?[
+    yrLab(YY),`${YY.len} months`,`${n-YY.len} months`,inr(E),`${YY.cnt} part-payment${s_(YY.cnt)}`,
+    `${inr(YY.fees)} (${YY.ch}%)`,inr(YY.ia+YY.fees),inr(sum(YY.A,'pay')+YY.exs+YY.fees),sn(YY.net)
+  ]:['No valid yearly plan',D,D,D,D,D,D,D,D]});
+  if(CB)comparison.push({key:'combo',label:'Combined',values:[
+    `${CB.fam.pick}, then close`,`${CB.m} months`,`${n-CB.m} months`,
+    CB.fam.k==='y'?inr(E):`${inr(E+X)} for ${CB.d} month${s_(CB.d)}`+(CB.m>CB.d?`, then ${inr(E)}`:''),
+    inr(CB.lump)+(CB.ce>0?` + ${inr(CB.ce)} yearly`:''),`${inr(CB.fee)} (${f}%)`+
+      (CB.cf>0?` + ${inr(CB.cf)} (${CB.fam.Q.ch}%)`:''),inr(CB.ci+CB.cf+CB.fee),
+    inr(CB.cum+CB.lump),sn(CB.net)
+  ]});
+  const comparisonRows=Array.from({length:8},(_,i)=>[[
+    'Plan','Loan ends in','Months saved','Monthly payment','One-time payment',
+    'Charges','Interest + charges','Total you pay','Interest you save'
+  ][i],...comparison.map(p=>p.values[i])]);
+  const rankGap=(entry,index)=>index?Math.max(0,ranked[index-1].net-entry.net):null,
+    podium=ranked.slice(0,3),
+    podiumStyles=['background:var(--gbg);border-color:var(--g)','background:var(--inp);border-color:var(--bd)','background:var(--abg);border-color:var(--a)'],
+    rankTable=`
+      <section class="card space-y-4">
+        ${head('All strategies, ranked by net interest saved','Only enabled standalone plans and selected Pre-Close combinations are ranked. Charges are included; regular EMI is the zero-saving baseline.')}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          ${podium.map((x,i)=>`<article class="rounded-xl border p-4 shadow-sm min-w-0" style="${podiumStyles[i]}">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold uppercase tracking-wide" style="color:var(--muted)">Rank #${i+1}</span>
+              ${x.key==='combo'&&x===ranked[0]?`<span class="bdg g">${ic('spark','w-3 h-3')}Combined winner</span>`:x===ranked[0]?`<span class="bdg g">${ic('check','w-3 h-3')}Winner</span>`:''}
+            </div>
+            <h4 class="mt-2 font-bold">${x.name}</h4>
+            <div class="mt-1 text-2xl font-extrabold">${sn(x.net)}</div>
+            <p class="mt-2 text-xs" style="color:var(--muted)">${i?`Difference from Rank #${i}: ${inr(rankGap(x,i))}`:'Highest net saving'}</p>
+          </article>`).join('')}
+        </div>
+        ${tbl(['Rank','Strategy','Net saving','Difference from rank above'],
+          ranked.map((x,i)=>`<tr class="${i===0?'best':''}">`+td([
+            `#${i+1}`,x.name+(x.key==='combo'&&x===ranked[0]?` <span class="bdg g">Combined winner</span>`:''),
+            sn(x.net),i?inr(rankGap(x,i)):'—'
+          ],2)+'</tr>').join(''),'')}
+      </section>`,
+    hd=['Compare',...comparison.map(p=>p.label+(p.key===topAll?(p.key==='combo'?` <span class="bdg g">${ic('spark','w-3 h-3')}Combined winner</span>`:bd):''))],
+    last=['Interest you save',...comparison.map(p=>p.values[8])],
+    comparisonTable=tbl(hd,comparisonRows.map(x=>`<tr>${td(x)}</tr>`).join('')+`<tr class="best">${td(last)}</tr>`),
+    kp=kpi('trend','Lead over next strategy',runnerUp?inr(winnerGap):'—',runnerUp?`${winner.name} ahead of ${runnerUp.name}`:'Only one strategy is available');
+  let yt='',gg=g;
+  if(YY&&yearOn){
+    const y=YY;
     yt=head('Yearly plan: year-wise summary',`${yrWhat(y)}, in ${yrMo(y.fq)}. Each payment uses its own amount. Years with extra payments are highlighted.`)+yrYearTbl(y)+
       head('Yearly plan: month-by-month schedule',`Months with an extra part-payment are highlighted. ${SET}`)+yrTable(y);
   }
@@ -80,37 +141,20 @@ function vSpec(){
   if(CB){
     const F=CB.fam,fk=F.k,what=fk==='m'?`${inr(X)} extra every month`:fk==='y'?'the yearly part-payments':`${inr(X)} extra every month plus the yearly part-payments`,
       dtx=`${CB.d} month${s_(CB.d)}`,plan=`Pay ${what} for ${dtx}, then close in month ${CB.m}`,regEmi=CB.cum-CB.cm-CB.ce-CB.cf;
-    /* column in the main comparison table */
-    hd.push('Combined'+(topAll==='combo'?bd:''));last.push(inr(CB.net));
-    R[0].push(`${F.pick}, then close`);R[1].push(`${CB.m} months`);R[2].push(`${n-CB.m} months`);
-    R[3].push(fk==='y'?inr(E):`${inr(E+X)} for ${dtx}`+(CB.m>CB.d?`, then ${inr(E)}`:''));
-    R[4].push(inr(CB.lump)+(CB.ce>0?` + ${inr(CB.ce)} yearly`:''));
-    R[5].push(`${inr(CB.fee)} (${f}%)`+(CB.cf>0?` + ${inr(CB.cf)} (${F.Q.ch}%)`:''));
-    R[6].push(inr(CB.ci+CB.cf+CB.fee));R[7].push(inr(CB.cum+CB.lump));
     cmbK=g3(kpi('spark','Best combined strategy',inr(CB.net),'saved after all charges'),
       kpi('clock','Part-payments for',dtx,`then close in month ${CB.m}`),
       kpi('rupee','Pay to close',inr(CB.lump),`after ${inr(CB.ex)} of part-payments`));
     /* recommendation cards when the combined strategy is the overall winner */
     if(topAll==='combo'){
-      const oth=[`pre-close only ${B?inr(pc):'not worthwhile'}`,`monthly part-payment ${inr(pp)}`].concat(YY?[`yearly plan ${inr(YY.net)}`]:[]);
+      const oth=ranked.filter(x=>x!==winner).map(x=>`${x.name} ${sn(x.net)}`);
       gg=adv('g','check','Best strategy: part-payments, then pre-close',plan,
         `Saves ${inr(CB.net)} after all charges (${inr(CB.fee)} closing charge${CB.cf>0?` and ${inr(CB.cf)} yearly part-payment charges`:''}). The others save less: ${lst(oth)}.`,
         `The loan ends in month ${CB.m}, ${n-CB.m} months early. You pay ${inr(CB.lump)} at once on top of ${inr(CB.ex)} of part-payments.`);
       k=adv('a','info','Keep in mind',`${inr(CB.lump)} at once in month ${CB.m}`,
-        `Before that you pay ${inr(CB.ex)} extra over ${dtx}. If you cannot arrange the closing amount, part-payment alone still saves:`,
+        `Before that you pay ${inr(CB.ex)} extra over ${dtx}. If you cannot arrange the closing amount, the other enabled strategies are:`,
         `Pre-close includes a ${f}% charge on the balance left.`+(auto?` You have not entered an extra amount, so ${inr(X)} (about half your EMI) is used here.`:''),
-        ul([`<b>Monthly:</b> ${inr(X)} extra every month saves ${inr(pp)} and ends the loan in ${nt} months.`].concat(YY?[`<b>Yearly plan:</b> saves ${inr(YY.net)} and ends the loan in ${YY.len} months.`]:[])));
+        ul(oth));
     }
-    /* ranking of every strategy by net saving */
-    const rk=[];
-    if(B)rk.push({nm:'Pre-close only',pp:'None',cl:`Month ${best.m}`,ex:0,lump:best.lump,net:pc});
-    rk.push({nm:'Monthly part-payment only',pp:`${nt} months (until the loan ends)`,cl:'No pre-close',ex:A.reduce((a,x)=>a+Math.max(0,x.paid-E),0),lump:null,net:pp});
-    if(YY)rk.push({nm:'Yearly part-payment only',pp:`${YY.len} months (until the loan ends)`,cl:'No pre-close',ex:YY.exs,lump:null,net:YY.net});
-    CS.forEach(q=>rk.push({nm:q.nm,pp:`${q.best.d} month${s_(q.best.d)}`,cl:`Month ${q.best.m}`,ex:q.best.ex,lump:q.best.lump,net:q.best.net}));
-    rk.sort((a,b)=>b.net-a.net);
-    const rankT=head('All strategies, ranked by interest saved',`Every part-payment duration and closing month was tried. For each kind of combined strategy, the best one is shown. The top row saves the most after all charges.`)+
-      tbl(['Strategy','Part-payments for','Pre-close in','Extra paid','Pay to close','You save'],
-        rk.map((x,i)=>`<tr class="${i===0?'best':''}">`+td([x.nm+(i===0?bd:''),x.pp,x.cl,x.ex>0?inr(x.ex):'—',x.lump!=null?inr(x.lump):'—',inr(x.net)],5)+'</tr>').join(''),'',5);
     /* where the saving of the best combined strategy comes from */
     const br=[['Regular EMIs paid until closing',inr(regEmi)],CB.cm>0?['Monthly extra paid',inr(CB.cm)]:null,CB.ce>0?['Yearly part-payments paid',inr(CB.ce)]:null,
       CB.cf>0?[`Yearly part-payment charges (${F.Q.ch}%)`,inr(CB.cf)]:null,[`Balance left in month ${CB.m}`,inr(CB.b)],[`Closing charge (${f}%)`,inr(CB.fee)],
@@ -124,19 +168,44 @@ function vSpec(){
     const tmx=Math.max(...tl.map(x=>x.net)),lab={g:'Recommended',a:'Fair',r:'Not worth it'};
     tl.forEach(x=>x.z=(tmx<=0||x.net<=0||x.net<.1*tmx)?'r':x.net>=.5*tmx?'g':'a');
     const timeT=head(`Timeline comparison: ${F.pick}`,`Each row pays the part-payments for that many months, then closes in the best month from then on. The best row is highlighted.`)+
-      tbl(['Part-payments for','Best month to close','Extra paid','Pay to close','You save','Verdict'],
-        tl.map(x=>`<tr class="${x===CB?'best':''}">`+td([x.d?`${x.d} month${s_(x.d)}`:'None (pre-close only)',`Month ${x.m}`,x.ex>0?inr(x.ex):'—',inr(x.lump),sn(x.net),`<span class="bdg ${x.z}">${DOT}${lab[x.z]}</span>`],4)+'</tr>').join(''),'',4);
+      `<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">${tl.map(x=>`<article class="rounded-xl border p-4 shadow-sm min-w-0 space-y-3" style="background:${x===CB?'var(--gbg)':'var(--card)'};border-color:${x===CB?'var(--g)':'var(--bd)'}">
+        <div class="flex items-start justify-between gap-2">
+          <div><p class="text-xs" style="color:var(--muted)">Part-payments for</p><h4 class="font-bold">${x.d?`${x.d} month${s_(x.d)}`:'None (pre-close only)'}</h4></div>
+          <span class="bdg ${x.z}">${DOT}${lab[x.z]}</span>
+        </div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div><p class="text-xs" style="color:var(--muted)">Best month to close</p><b>Month ${x.m}</b></div>
+          <div><p class="text-xs" style="color:var(--muted)">Extra paid</p><b>${x.ex>0?inr(x.ex):'—'}</b></div>
+          <div><p class="text-xs" style="color:var(--muted)">Pay to close</p><b>${inr(x.lump)}</b></div>
+          <div><p class="text-xs" style="color:var(--muted)">Net saving</p><b>${sn(x.net)}</b></div>
+        </div>
+        ${x===CB?`<span class="bdg g">${ic('spark','w-3 h-3')}Combined winner</span>`:''}
+      </article>`).join('')}</div>`;
     SPC={f,L,X,fams:CS,best:CB,pure:rows};
-    cmb=head('Combined strategy: part-payments, then pre-close','Link your part-payments to closing: pay extra for some months, then close the loan. Every duration and closing month was compared.')+rankT+breakT+timeT+spwBox();
+    cmb=head('Combined strategy: part-payments, then pre-close','Link your part-payments to closing: pay extra for some months, then close the loan. Every duration and closing month was compared.')+breakT+timeT+spwBox();
   }else{
-    cmb=note('Combined strategies (part-payments, then pre-close) are not available here: '+(rows.length?'no combination saves more than it costs.':'the loan ends before closing is allowed.'));
+    cmb=note(preOn?'No linked combined strategy is available. Enable Monthly Partly Payment or Yearly Part-Payment in Pre-Close to include that combination.':'Enable Pre-Close and one of its linking switches to compare combined strategies.');
   }
-  return note(`Based on a ${f}% closing charge after ${Math.max(1,L)} EMIs (set in Pre-Close) and ${inr(X)} extra every month (set in Partly Payment)`+(YY?', plus the year-wise yearly plan (set in Yearly Optimizer)':'')+`. Change them there to update this page. The combined section tries every part-payment duration and closing month.`)+
-    (YY?'':yMsg?note('Yearly plan left out: '+yMsg):`<div class="flex flex-wrap gap-3">${GO('yr','Add a yearly plan')}</div>`)+
-    g3(kpi('cal',B?`Pre-close (month ${best.m})`:'Pre-close',inr(pc),B?`saved after a ${inr(best.fee)} charge`:no),
-      kpi('layers','Part-payment',inr(pp),`saved; loan ends in ${nt} months`),kp)+cmbK+
+  const enabledKpis=[];
+  if(preOn)enabledKpis.push(kpi('cal',B?`Pre-close (month ${best.m})`:'Pre-close',sn(preBest?preBest.net:0),preBest?`net saving after a ${inr(preBest.fee)} charge`:no));
+  if(partOn)enabledKpis.push(kpi('layers','Part-payment',sn(pp),`saved; loan ends in ${nt} months`));
+  if(yearOn&&YY)enabledKpis.push(kpi('repeat','Yearly plan',sn(YY.net),`saved; loan ends in ${YY.len} months`));
+  if(winner.key==='combo')enabledKpis.push(kpi('spark','Combined',sn(winner.net),'highest net saving'));
+  enabledKpis.push(kp);
+  const settings=[
+      preOn?`Pre-Close uses a ${f}% charge after ${Math.max(1,L)} EMIs.`:'',
+      partOn?`Partly Payment uses ${inr(X)} extra every month.`:'',
+      yearOn&&YY?`The yearly plan uses the Yearly Optimizer settings.`:'',
+      linkM||linkY?`Combined strategies use only the Pre-Close linking switches that are on.`:''
+    ].filter(Boolean).join(' '),
+    extraText=settings||'No prepayment or combined strategies are enabled; regular EMI is shown as the zero-saving baseline.',
+    yearlyPrompt=yearOn||linkY?(yMsg?note('Yearly plan left out: '+yMsg):''):
+      `<div class="flex flex-wrap gap-3">${GO('yr','Add a yearly plan')}</div>`;
+  return note(`${extraText} Change settings in their respective views to update this page.`)+
+    (yearOn&&!YY||linkY&&!YY?note('Yearly plan left out: '+(yMsg||'No valid yearly plan is available.')):yearlyPrompt)+
+    g3(...enabledKpis)+cmbK+
     `<div class="grid md:grid-cols-2 gap-3">${gg}${k}</div>`+
-    tbl(hd,R.map(x=>`<tr>${td(x)}</tr>`).join('')+`<tr class="best">${td(last)}</tr>`)+cmb+yt;
+    rankTable+`<section class="card space-y-4">${head('Strategy comparison','A side-by-side breakdown of loan duration, payments and net interest saved.')}${comparisonTable}</section>`+cmb+yt;
 }
 
 /* keep the two Pre-Close switches in step with the Partly Payment and Yearly Optimizer settings */

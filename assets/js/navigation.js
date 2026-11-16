@@ -15,7 +15,7 @@ function render(){
   if(cur==='man')return;
   const o=$('o-'+cur);
   if(cur==='normal')o.innerHTML=ST?vNormal():nov('Fill in all four loan details above.');
-  else if(cur==='spec')o.innerHTML=on('pre')&&on('part')?(ST?vSpec():nov(HINT)):note('Please enable both Pre-Close and Partly Payment toggles in their respective views to run the Special Comparison analysis.')+`<div class="flex flex-wrap gap-3">${GO('pre','Open Pre-Close')}${GO('part','Open Partly Payment')}</div>`;
+  else if(cur==='spec')o.innerHTML=ST?vSpec():nov(HINT);
   else o.innerHTML=!on(cur)?'':ST?R[cur]():nov(HINT);
 }
 ['pre','part','yr','cust'].forEach(id=>$('on-'+id).addEventListener('change',()=>{sync(id);render()}));
